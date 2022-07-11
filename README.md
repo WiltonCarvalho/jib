@@ -90,7 +90,7 @@ docker pull --platform arm64 127.0.0.1:5000/demo-app:v1
 docker pull --platform amd64 127.0.0.1:5000/demo-app:v1
 ```
 
-### Image Pull with Skopeo
+### Inspect Registry with Skopeo
 ```
 skopeo inspect --tls-verify=false --raw \
 docker://127.0.0.1:5000/demo-app:v1
@@ -99,10 +99,14 @@ docker://127.0.0.1:5000/demo-app:v1
 skopeo inspect --tls-verify=false \
 docker://127.0.0.1:5000/demo-app:v1 | jq .RepoTags
 ```
+
+### Copy Image from Registry to OCI Format with Skopeo
 ```
 skopeo copy --all --src-tls-verify=false \
 docker://127.0.0.1:5000/demo-app:v1 oci-archive:my-oci-image.tar
 ```
+
+### Inspect OCI Image Tar with Skopeo
 ```
 skopeo inspect --raw oci-archive:my-oci-image.tar | \
 jq -r '.manifests[].platform.architecture'
@@ -113,6 +117,7 @@ skopeo inspect oci-archive:my-oci-image.tar --override-arch=amd64
 ```
 skopeo inspect oci-archive:my-oci-image.tar --override-arch=arm64
 ```
+### Copy Image from OCI Format to Docker Format with Skopeo
 ```
 skopeo copy --override-arch=amd64 --src-tls-verify=false \
 docker://127.0.0.1:5000/demo-app:v1 \
