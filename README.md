@@ -82,7 +82,7 @@ export GRADLE_USER_HOME=$PWD/build_cache/gradle
 -Djib.to.image=127.0.0.1:5000/demo-app:v1
 ```
 
-### Image Poll with Docker
+### Image Pull with Docker
 ```
 docker pull --platform arm64 127.0.0.1:5000/demo-app:v1
 ```
@@ -90,7 +90,7 @@ docker pull --platform arm64 127.0.0.1:5000/demo-app:v1
 docker pull --platform amd64 127.0.0.1:5000/demo-app:v1
 ```
 
-### Image Poll with Skopeo
+### Image Pull with Skopeo
 ```
 skopeo inspect --tls-verify=false --raw \
 docker://127.0.0.1:5000/demo-app:v1
