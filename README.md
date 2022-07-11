@@ -30,12 +30,16 @@ docker run -d --rm --name registry -p 5000:5000 registry:2
 
 ### JDK Container
 ```
-docker run -it --rm --net=host -v $PWD/demo-app:/src/app -w /src/app openjdk:11-jdk bash
+docker run -it --rm --net=host \
+-v $PWD/demo-app:/src/app \
+-w /src/app \
+openjdk:11-jdk bash
 ```
 
 ### Build With Maven Jib
 ```
-./mvnw --batch-mode package com.google.cloud.tools:jib-maven-plugin:3.2.1:build \
+./mvnw --batch-mode package \
+com.google.cloud.tools:jib-maven-plugin:3.2.1:build \
 -Dmaven.repo.local=$PWD/build_cache/maven \
 -Djib.from.image=openjdk:11-jre \
 -Djib.from.platforms=linux/amd64,linux/arm64 \
@@ -101,14 +105,16 @@ skopeo inspect oci-archive:my-oci-image.tar --override-arch=arm64
 ```
 ```
 skopeo copy --override-arch=amd64 --src-tls-verify=false \
-docker://127.0.0.1:5000/demo-app:v1 docker-archive:my-docker-image-amd64.tar
+docker://127.0.0.1:5000/demo-app:v1 \
+docker-archive:my-docker-image-amd64.tar
 ```
 ```
 skopeo inspect docker-archive:my-docker-image-amd64.tar
 ```
 ```
 skopeo copy --override-arch=arm64 --src-tls-verify=false \
-docker://127.0.0.1:5000/demo-app:v1 docker-archive:my-docker-image-arm64.tar
+docker://127.0.0.1:5000/demo-app:v1 \
+docker-archive:my-docker-image-arm64.tar
 ```
 ```
 skopeo inspect docker-archive:my-docker-image-arm64.tar
