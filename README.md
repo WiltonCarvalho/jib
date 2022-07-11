@@ -44,6 +44,7 @@ com.google.cloud.tools:jib-maven-plugin:3.2.1:build \
 -Djib.from.image=openjdk:11-jre \
 -Djib.from.platforms=linux/amd64,linux/arm64 \
 -Djib.allowInsecureRegistries=true \
+-Djib.to.tags=maven-build,latest \
 -Djib.to.image=127.0.0.1:5000/demo-app:v1
 ```
 
@@ -77,6 +78,7 @@ export GRADLE_USER_HOME=$PWD/build_cache/gradle
 -Djib.from.image=openjdk:11-jre \
 -Djib.from.platforms=linux/amd64,linux/arm64 \
 -Djib.allowInsecureRegistries=true \
+-Djib.to.tags=gradle-build,latest \
 -Djib.to.image=127.0.0.1:5000/demo-app:v1
 ```
 
@@ -89,6 +91,14 @@ docker pull --platform amd64 127.0.0.1:5000/demo-app:v1
 ```
 
 ### Image Poll with Skopeo
+```
+skopeo inspect --tls-verify=false --raw \
+docker://127.0.0.1:5000/demo-app:v1
+```
+```
+skopeo inspect --tls-verify=false \
+docker://127.0.0.1:5000/demo-app:v1 | jq .RepoTags
+```
 ```
 skopeo copy --all --src-tls-verify=false \
 docker://127.0.0.1:5000/demo-app:v1 oci-archive:my-oci-image.tar
