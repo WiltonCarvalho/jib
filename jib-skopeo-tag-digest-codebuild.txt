@@ -1,5 +1,14 @@
 set -ex
-apt-get -q -y install skopeo jq jp libxml2-utils
+TRIVY_REPO="https://aquasecurity.github.io/trivy-repo/deb"
+TRIVY_GPG="/usr/share/keyrings/trivy-keyring.gpg"
+curl -fsSL $TRIVY_REPO/public.key | \
+  gpg --dearmor > $TRIVY_GPG
+ARCH=$(dpkg --print-architecture)
+OS_RELEASE=$(grep VERSION_CODENAME /etc/os-release | cut -d'=' -f 2)
+echo "deb [arch=$ARCH signed-by=$TRIVY_GPG] $TRIVY_REPO $OS_RELEASE main" | \
+  tee /etc/apt/sources.list.d/trivy.list
+apt-get -q update
+apt-get -q -y install trivy skopeo jq jp libxml2-utils
 curl -fsSL https://start.spring.io/starter.tgz \
   -d dependencies=web,actuator,prometheus \
   -d javaVersion=11 \
