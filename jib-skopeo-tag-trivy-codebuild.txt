@@ -1,0 +1,50 @@
+set -ex
+TRIVY_REPO="https://aquasecurity.github.io/trivy-repo/deb"
+TRIVY_GPG="/usr/share/keyrings/trivy-keyring.gpg"
+curl -fsSL $TRIVY_REPO/public.key | \
+  gpg --dearmor > $TRIVY_GPG
+ARCH=$(dpkg --print-architecture)
+OS_RELEASE=$(grep VERSION_CODENAME /etc/os-release | cut -d'=' -f 2)
+echo "deb [arch=$ARCH signed-by=$TRIVY_GPG] $TRIVY_REPO $OS_RELEASE main" | \
+  tee /etc/apt/sources.list.d/trivy.list
+apt-get -q update
+apt-get -q -y install trivy skopeo jq jp libxml2-utils
+curl -fsSL https://start.spring.io/starter.tgz \
+  -d dependencies=web,actuator,prometheus \
+  -d javaVersion=11 \
+  -d packageName=com.example \
+  -d groupId=com.example \
+  -d artifactId=demo-app \
+  -d baseDir=demo-app \
+  -d type=maven-project | tar -xzvf -
+docker run -d --rm --name registry -p 5000:5000 registry:2
+cd demo-app
+VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+ECR_NAME=demo-app
+REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_NAME
+IMAGE_TAG=$VERSION
+./mvnw --batch-mode package \
+  com.google.cloud.tools:jib-maven-plugin:3.2.1:build \
+  -Dmaven.repo.local=$PWD/build_cache/maven \
+  -Djib.from.image=openjdk:11-jre \
+  -Djib.from.platforms=linux/amd64,linux/arm64 \
+  -Djib.allowInsecureRegistries=true \
+  -Djib.to.tags=maven-build,latest \
+  -Djib.to.image=127.0.0.1:5000/$ECR_NAME:$IMAGE_TAG
+skopeo inspect --tls-verify=false --raw \
+  docker://127.0.0.1:5000/$ECR_NAME:$IMAGE_TAG| jq .
+skopeo copy --override-arch=amd64 --src-tls-verify=false \
+  docker://127.0.0.1:5000/$ECR_NAME:$IMAGE_TAG \
+  docker-archive:my-docker-image-amd64.tar
+trivy image --no-progress --exit-code 0 --ignore-unfixed --severity HIGH,CRITICAL \
+  --security-checks vuln --vuln-type os -i my-docker-image-amd64.tar
+aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
+  skopeo login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+skopeo copy --all --src-tls-verify=false \
+  docker://127.0.0.1:5000/$ECR_NAME:$IMAGE_TAG \
+  docker://$REPOSITORY_URI:$IMAGE_TAG
+skopeo copy --all docker://$REPOSITORY_URI:$IMAGE_TAG docker://$REPOSITORY_URI:latest
+skopeo copy --all docker://$REPOSITORY_URI:$IMAGE_TAG docker://$REPOSITORY_URI:develop
+skopeo copy --override-arch=amd64 docker://$REPOSITORY_URI:$IMAGE_TAG docker://$REPOSITORY_URI:$IMAGE_TAG-amd64
+skopeo copy --override-arch=arm64 docker://$REPOSITORY_URI:$IMAGE_TAG docker://$REPOSITORY_URI:$IMAGE_TAG-arm64
