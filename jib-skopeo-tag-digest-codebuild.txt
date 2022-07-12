@@ -1,0 +1,44 @@
+set -ex
+apt-get -q -y install skopeo jq jp libxml2-utils
+curl -fsSL https://start.spring.io/starter.tgz \
+  -d dependencies=web,actuator,prometheus \
+  -d javaVersion=11 \
+  -d packageName=com.example \
+  -d groupId=com.example \
+  -d artifactId=demo-app \
+  -d baseDir=demo-app \
+  -d type=maven-project | tar -xzvf -
+docker run -d --rm --name registry -p 5000:5000 registry:2
+cd demo-app
+java -version
+VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
+./mvnw --batch-mode package \
+  com.google.cloud.tools:jib-maven-plugin:3.2.1:build \
+  -Dmaven.repo.local=$PWD/build_cache/maven \
+  -Djib.from.image=openjdk:11-jre \
+  -Djib.from.platforms=linux/amd64,linux/arm64 \
+  -Djib.allowInsecureRegistries=true \
+  -Djib.to.tags=maven-build,latest \
+  -Djib.to.image=127.0.0.1:5000/demo-app:$VERSION
+skopeo inspect --tls-verify=false --raw \
+  docker://127.0.0.1:5000/demo-app:$VERSION | jq .
+skopeo copy --override-arch=amd64 --src-tls-verify=false \
+  docker://127.0.0.1:5000/demo-app:$VERSION \
+  docker-archive:my-docker-image-amd64.tar
+trivy image --no-progress --exit-code 0 --ignore-unfixed --severity HIGH,CRITICAL \
+  --security-checks vuln --vuln-type os -i my-docker-image-amd64.tar
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/demo-app
+aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
+  docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+skopeo copy --all --src-tls-verify=false \
+  docker://127.0.0.1:5000/demo-app:$VERSION \
+  docker://$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/demo-app:$VERSION
+digest_amd64=$(skopeo inspect --raw docker://$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/demo-app:$VERSION | \
+  jp -u "manifests[?platform.architecture=='amd64']|[0].digest")
+digest_arm64=$(skopeo inspect --raw docker://$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/demo-app:$VERSION | \
+  jp -u "manifests[?platform.architecture=='arm64']|[0].digest")
+skopeo copy docker://$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/demo-app@$digest_amd64 \
+  docker://$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/demo-app:$VERSION-amd64
+skopeo copy docker://$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/demo-app@$digest_arm64 \
+  docker://$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/demo-app:$VERSION-arm64
