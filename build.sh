@@ -1,5 +1,28 @@
 #!/bin/bash
 set -e
+if [ ! -f init.gradle ]; then
+cat <<'EOF'> init.gradle
+initscript {
+    repositories {
+        maven {
+            url 'https://plugins.gradle.org/m2'
+        }
+    }
+    dependencies {
+        classpath 'gradle.plugin.com.google.cloud.tools:jib-gradle-plugin:3.2.1'
+    }
+}
+rootProject {
+    afterEvaluate {
+        if (!project.plugins.hasPlugin('com.google.cloud.tools.jib')) {
+            project.apply plugin: com.google.cloud.tools.jib.gradle.JibPlugin
+            tasks.jib.dependsOn classes
+        }
+    }
+}
+EOF
+fi
+
 podman run --platform=linux/amd64 --name builder -it --rm \
   -v /tmp:/tmp \
   -e GRADLE_USER_HOME=/tmp/build_cache/gradle \
