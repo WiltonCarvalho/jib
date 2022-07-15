@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 if [ ! -f init.gradle ]; then
 cat <<'EOF'> init.gradle
