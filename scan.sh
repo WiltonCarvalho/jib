@@ -1,6 +1,6 @@
 #!/bin/sh
 set -ex
-podman run --platform=linux/amd64 --name scan -it --rm \
+podman run --platform=linux/amd64 -it --rm \
   -v /tmp:/tmp \
   -e TRIVY_CACHE_DIR=/tmp/build_cache/trivy \
   -e TRIVY_INSECURE=true \
