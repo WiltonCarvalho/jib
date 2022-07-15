@@ -41,12 +41,12 @@ podman run --platform=linux/amd64 --name builder -it --rm \
         -Djib.outputPaths.tar=/tmp/build_cache/jib-image.tar
     '
 
-echo -e '\nLoading Image...\n'
+printf '\nLoading Image...'
 podman load -i /tmp/build_cache/jib-image.tar | \
   awk '{print $NF}' | \
   xargs -i podman tag {} test
 
-echo -e '\nLoaded Image...\n'
-podman images test
+printf '\nLoaded Image...'
+podman image tree test
 
-echo -e '\nRun "podman run -it --rm -p 8080:8080 test"\n'
+printf '\nRun "podman run -it --rm -p 8080:8080 test"'
