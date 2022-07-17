@@ -59,7 +59,7 @@ podman run --platform=linux/amd64 -it --rm \
     '
 
 # Load the Jib image on Podman
-printf '\nLoading Image...\n'
+printf '\nLoading Image... /var/tmp/build_cache/jib-image.ta\n'
 podman load -i /var/tmp/build_cache/jib-image.tar | \
   awk '{print $NF}' | \
   xargs -i podman tag {} test
