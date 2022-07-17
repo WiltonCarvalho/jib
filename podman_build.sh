@@ -38,13 +38,14 @@ EOF
 # Build with Podman
 podman run --platform=linux/amd64 -it --rm \
   -v /var/tmp:/var/tmp \
-  -e GRADLE_USER_HOME=/var/tmp/build_cache/gradle \
   -v $PWD:/code:ro -w /code \
   docker.io/library/openjdk:11-jdk \
     sh -c '
       set -ex
       cp -r /code /home/code
       cd /home/code
+      export JAVA_HOME=/usr/local/openjdk-11
+      export GRADLE_USER_HOME=/var/tmp/build_cache/gradle
       exec ./gradlew --info --init-script init.gradle jibBuildTar \
         -Djib.container.user=999:0 \
         -Djib.container.workingDirectory=/app \
@@ -59,7 +60,7 @@ podman run --platform=linux/amd64 -it --rm \
     '
 
 # Load the Jib image on Podman
-printf '\nLoading Image... /var/tmp/build_cache/jib-image.ta\n'
+printf '\nLoading Image... /var/tmp/build_cache/jib-image.tar\n'
 podman load -i /var/tmp/build_cache/jib-image.tar | \
   awk '{print $NF}' | \
   xargs -i podman tag {} test
