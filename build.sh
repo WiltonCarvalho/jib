@@ -25,8 +25,8 @@ EOF
 
 # Extra directories to add to the image
 # Entrypoint script to allow custom commands
-mkdir -p /tmp/extraDirectories/app
-cat <<'EOF'> /tmp/extraDirectories/app/run.sh
+mkdir -p /var/tmp/extraDirectories/app
+cat <<'EOF'> /var/tmp/extraDirectories/app/run.sh
 #!/bin/sh
 set -e
 CLASS_PATH="$(cat /app/jib-classpath-file)"
@@ -37,8 +37,8 @@ EOF
 
 # Build with Podman
 podman run --platform=linux/amd64 -it --rm \
-  -v /tmp:/tmp \
-  -e GRADLE_USER_HOME=/tmp/build_cache/gradle \
+  -v /var/tmp:/var/tmp \
+  -e GRADLE_USER_HOME=/var/tmp/build_cache/gradle \
   -v $PWD:/code:ro -w /code \
   docker.io/library/openjdk:11-jdk \
     sh -c '
@@ -50,17 +50,17 @@ podman run --platform=linux/amd64 -it --rm \
         -Djib.container.workingDirectory=/app \
         -Djib.container.entrypoint=/app/run.sh \
         -Djib.container.args= \
-        -Djib.extraDirectories.paths=/tmp/extraDirectories \
+        -Djib.extraDirectories.paths=/var/tmp/extraDirectories \
         -Djib.extraDirectories.permissions=/app/run.sh=755,/app=775 \
         -Djib.from.image=docker.io/library/openjdk:11-jre \
         -Djib.from.platforms=linux/amd64 \
         -Djib.allowInsecureRegistries=true \
-        -Djib.outputPaths.tar=/tmp/build_cache/jib-image.tar
+        -Djib.outputPaths.tar=/var/tmp/build_cache/jib-image.tar
     '
 
 # Load the Jib image on Podman
 printf '\nLoading Image...\n'
-podman load -i /tmp/build_cache/jib-image.tar | \
+podman load -i /var/tmp/build_cache/jib-image.tar | \
   awk '{print $NF}' | \
   xargs -i podman tag {} test
 
