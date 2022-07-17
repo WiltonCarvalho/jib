@@ -37,8 +37,11 @@ skopeo inspect --tls-verify=false --raw \
 skopeo copy --override-arch=amd64 --src-tls-verify=false \
   docker://127.0.0.1:5000/$ECR_NAME:$IMAGE_TAG \
   docker-archive:my-docker-image-amd64.tar
-trivy image --no-progress --exit-code 0 --ignore-unfixed --severity HIGH,CRITICAL \
-  --security-checks vuln --vuln-type os -i my-docker-image-amd64.tar
+trivy image --ignore-unfixed --severity HIGH,CRITICAL \
+  --exit-code 0 \
+  --security-checks vuln \
+  --vuln-type os,library \
+  --input my-docker-image-amd64.tar
 aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
   skopeo login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
 skopeo copy --all --src-tls-verify=false \
