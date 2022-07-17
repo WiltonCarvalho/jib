@@ -25,8 +25,8 @@ EOF
 
 # Extra directories to add to the image
 # Entrypoint script to allow custom commands
-mkdir -p extraDirectories/app
-cat <<'EOF'> extraDirectories/app/run.sh
+mkdir -p /tmp/extraDirectories/app
+cat <<'EOF'> /tmp/extraDirectories/app/run.sh
 #!/bin/sh
 set -e
 CLASS_PATH="$(cat /app/jib-classpath-file)"
@@ -50,7 +50,7 @@ podman run --platform=linux/amd64 -it --rm \
         -Djib.container.workingDirectory=/app \
         -Djib.container.entrypoint=/app/run.sh \
         -Djib.container.args= \
-        -Djib.extraDirectories.paths=$PWD/extraDirectories \
+        -Djib.extraDirectories.paths=/tmp/extraDirectories \
         -Djib.extraDirectories.permissions=/app/run.sh=755,/app=775 \
         -Djib.from.image=docker.io/library/openjdk:11-jre \
         -Djib.from.platforms=linux/amd64 \
