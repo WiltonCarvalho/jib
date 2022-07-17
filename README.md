@@ -138,7 +138,7 @@ skopeo inspect docker-archive:my-docker-image-arm64.tar
 ### Load Image from Tar
 ```
 docker load -i my-docker-image-amd64.tar | \
-  awk -F':' '{print $NF}' | \
+  awk '{print $NF}' | \
   xargs -i docker tag {} my-docker-image
 ```
 ```
