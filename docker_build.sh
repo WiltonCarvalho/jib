@@ -36,33 +36,67 @@ exec java -cp $CLASS_PATH $MAIN_CLASS
 EOF
 
 # Build with docker
+
 USER_ID=$(id -u)
-docker run --platform=linux/amd64 -it --rm \
-  -v /var/tmp:/var/tmp \
-  -v $PWD:/code:ro -w /code \
-  docker.io/library/openjdk:11-jdk \
-    sh -c "
-      set -ex
-      cp -r /code /home/code
-      useradd -s /bin/bash -d /home/code --gid 0 --uid $USER_ID code
-      chown -R code:0 /home/code
-      cd /home/code
-      su - code sh -c '
-        export JAVA_HOME=/usr/local/openjdk-11
-        export GRADLE_USER_HOME=/var/tmp/build_cache/gradle
-        exec ./gradlew --info --init-script init.gradle jibBuildTar \
-          -Djib.container.user=999:0 \
-          -Djib.container.workingDirectory=/app \
-          -Djib.container.entrypoint=/app/run.sh \
-          -Djib.container.args= \
-          -Djib.extraDirectories.paths=/var/tmp/extraDirectories \
-          -Djib.extraDirectories.permissions=/app/run.sh=755,/app=775 \
-          -Djib.from.image=docker.io/library/openjdk:11-jre \
-          -Djib.from.platforms=linux/amd64 \
-          -Djib.allowInsecureRegistries=true \
-          -Djib.outputPaths.tar=/var/tmp/build_cache/jib-image.tar
-      '
-    "
+if [ -f pom.xml ]; then
+  docker run --platform=linux/amd64 -it --rm \
+    -v /var/tmp:/var/tmp \
+    -v $PWD:/code:ro -w /code \
+    docker.io/library/openjdk:11-jdk \
+      sh -c "
+        set -ex
+        cp -r /code /home/code
+        useradd -s /bin/bash -d /home/code --gid 0 --uid $USER_ID code
+        chown -R code:0 /home/code
+        cd /home/code
+        su - code sh -c '
+          export JAVA_HOME=/usr/local/openjdk-11
+          chmod +x mvnw
+          exec ./mvnw --batch-mode package \
+            -Dmaven.repo.local=/var/tmp/build_cache/maven \
+            -Djib.container.user=999:0 \
+            -Djib.container.workingDirectory=/app \
+            -Djib.container.entrypoint=/app/run.sh \
+            -Djib.container.args= \
+            -Djib.extraDirectories.paths=/var/tmp/extraDirectories \
+            -Djib.extraDirectories.permissions=/app/run.sh=755,/app=775 \
+            -Djib.from.image=docker.io/library/openjdk:11-jre \
+            -Djib.from.platforms=linux/amd64 \
+            -Djib.allowInsecureRegistries=true \
+            -Djib.outputPaths.tar=/var/tmp/build_cache/jib-image.tar
+        '
+      "
+fi
+
+if [ -f build.gradle ]; then
+  docker run --platform=linux/amd64 -it --rm \
+    -v /var/tmp:/var/tmp \
+    -v $PWD:/code:ro -w /code \
+    docker.io/library/openjdk:11-jdk \
+      sh -c "
+        set -ex
+        cp -r /code /home/code
+        useradd -s /bin/bash -d /home/code --gid 0 --uid $USER_ID code
+        chown -R code:0 /home/code
+        cd /home/code
+        su - code sh -c '
+          export JAVA_HOME=/usr/local/openjdk-11
+          export GRADLE_USER_HOME=/var/tmp/build_cache/gradle
+          chmod +x gradlew
+          exec ./gradlew --info --init-script init.gradle jibBuildTar \
+            -Djib.container.user=999:0 \
+            -Djib.container.workingDirectory=/app \
+            -Djib.container.entrypoint=/app/run.sh \
+            -Djib.container.args= \
+            -Djib.extraDirectories.paths=/var/tmp/extraDirectories \
+            -Djib.extraDirectories.permissions=/app/run.sh=755,/app=775 \
+            -Djib.from.image=docker.io/library/openjdk:11-jre \
+            -Djib.from.platforms=linux/amd64 \
+            -Djib.allowInsecureRegistries=true \
+            -Djib.outputPaths.tar=/var/tmp/build_cache/jib-image.tar
+        '
+      "
+fi
 
 # Load the Jib image on docker
 printf '\nLoading Image... /var/tmp/build_cache/jib-image.tar\n'
