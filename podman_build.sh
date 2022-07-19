@@ -50,9 +50,8 @@ if [ -f pom.xml ]; then
         cd /home/code
         export JAVA_HOME=/usr/local/openjdk-11
         chmod +x mvnw
-        exec ./mvnw --batch-mode package \
+        exec ./mvnw --batch-mode compile com.google.cloud.tools:jib-maven-plugin:3.2.1:buildTar \
           -Dmaven.repo.local=/var/tmp/build_cache/maven \
-          com.google.cloud.tools:jib-maven-plugin:3.2.1:buildTar \
           -Djib.container.user=999:0 \
           -Djib.container.workingDirectory=/app \
           -Djib.container.entrypoint=/app/run.sh \
