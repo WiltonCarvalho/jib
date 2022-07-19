@@ -2,6 +2,7 @@
 set -e
 
 # Gradle init file for Jib plugin outsite of build.gradle
+if [ -f build.gradle ]; then
 cat <<'EOF'> init.gradle
 initscript {
   repositories {
@@ -22,6 +23,7 @@ rootProject {
   }
 }
 EOF
+fi
 
 # Extra directories to add to the image
 # Entrypoint script to allow custom commands
