@@ -1,0 +1,8 @@
+trivy image --ignore-unfixed --severity HIGH,CRITICAL \
+  --exit-code 1 \
+  --security-checks vuln \
+  --format json -o /tmp/scan.json \
+  --vuln-type library \
+  --input $BUILD_DIR/jib-image.tar
+
+cat /tmp/scan.json | jq '.Results[].Vulnerabilities[].PkgPath' 2>/dev/null
